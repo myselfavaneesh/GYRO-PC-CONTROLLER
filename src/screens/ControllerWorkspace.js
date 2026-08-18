@@ -13,6 +13,7 @@ export default function ControllerWorkspace() {
     const [brake, setBrake] = useState(0.0);
     const [steer, setSteer] = useState(0.0);
     
+    const inputs = useRef({ gas: 0.0, brake: 0.0 });
     const wheelRot = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
@@ -28,7 +29,7 @@ export default function ControllerWorkspace() {
             setSteer(normalizedSteer);
 
             // Dispatch via UDP at high frequency
-            UdpClient.sendTelemetry(normalizedSteer, gas, brake);
+            UdpClient.sendTelemetry(normalizedSteer, inputs.current.gas, inputs.current.brake);
 
             // Animate local UI steering wheel
             // normalizedSteer is -1 to 1. Map to -90 to 90 degrees visually
@@ -40,7 +41,7 @@ export default function ControllerWorkspace() {
         });
 
         return () => subscription.unsubscribe();
-    }, [gas, brake]);
+    }, []);
 
     const triggerHaptic = () => {
         const options = {
@@ -66,8 +67,15 @@ export default function ControllerWorkspace() {
                 {/* Brake Pedal (Left 35%) */}
                 <View 
                     style={styles.pedalArea}
-                    onTouchStart={() => { setBrake(1.0); triggerHaptic(); }}
-                    onTouchEnd={() => setBrake(0.0)}
+                    onTouchStart={() => { 
+                        setBrake(1.0); 
+                        inputs.current.brake = 1.0;
+                        triggerHaptic(); 
+                    }}
+                    onTouchEnd={() => { 
+                        setBrake(0.0);
+                        inputs.current.brake = 0.0;
+                    }}
                 >
                     <View style={[styles.pedalVisual, { backgroundColor: brake > 0 ? '#FF1744' : '#222' }]} />
                 </View>
@@ -95,8 +103,15 @@ export default function ControllerWorkspace() {
                 {/* Gas Pedal (Right 35%) */}
                 <View 
                     style={styles.pedalArea}
-                    onTouchStart={() => { setGas(1.0); triggerHaptic(); }}
-                    onTouchEnd={() => setGas(0.0)}
+                    onTouchStart={() => { 
+                        setGas(1.0); 
+                        inputs.current.gas = 1.0;
+                        triggerHaptic(); 
+                    }}
+                    onTouchEnd={() => { 
+                        setGas(0.0);
+                        inputs.current.gas = 0.0;
+                    }}
                 >
                     <View style={[styles.pedalVisual, { backgroundColor: gas > 0 ? '#00E5FF' : '#222' }]} />
                 </View>

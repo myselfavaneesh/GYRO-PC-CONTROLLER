@@ -25,25 +25,29 @@ class SensorFusion {
      * @returns {number} - Normalized float between -1.0 and 1.0
      */
     normalizeSteering(rawRoll) {
-        // Convert radians to degrees
-        let degrees = rawRoll * (180 / Math.PI);
+        // Convert rawRoll from radians to degrees
+        const degrees = rawRoll * (180.0 / Math.PI);
         
-        // Apply sensitivity (simulate up to 2000 lock-to-lock based on device's +-90 deg range)
-        // A device turning 90 deg with 11.1x sensitivity = 1000 deg (half of 2000)
-        let scaledDegrees = degrees * this.sensitivity;
+        // Define a realistic baseline target range for mobile gaming (e.g., 45.0 degrees)
+        const baselineTargetRange = 45.0;
+        
+        // Scale this baseline using the sensitivity configuration. 
+        // Higher sensitivity = smaller target range (meaning you tilt less to turn fully)
+        const scaledTargetRange = baselineTargetRange / (this.sensitivity || 1.0);
 
-        // Map to -1.0 to 1.0 assuming max theoretical angle is 1000 degrees each way
-        let normalized = scaledDegrees / 1000.0;
+        // Divide the raw degrees by this new target range
+        let normalized = degrees / scaledTargetRange;
         
-        // Clamp to [-1.0, 1.0]
+        // Strictly clamp the final normalized float between -1.0 and 1.0
         normalized = Math.max(-1.0, Math.min(1.0, normalized));
 
-        // Apply Deadzone
-        if (Math.abs(normalized) < this.deadzone) {
+        // Apply the deadzone logic
+        if (Math.abs(normalized) <= this.deadzone) {
             return 0.0;
         }
 
-        // Rescale so that just past the deadzone doesn't jump
+        // Smoothly rescale the remaining value from 0.0 to 1.0 (or -1.0)
+        // so the steering doesn't "snap" aggressively when escaping the deadzone.
         if (normalized > 0) {
             return (normalized - this.deadzone) / (1.0 - this.deadzone);
         } else {
